@@ -1,8 +1,10 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module HipBot.Naggy.Types where
@@ -23,6 +25,8 @@ import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import Data.Typeable
+import Data.Time.LocalTime
 import Data.Time.Zones.All
 import Web.ClientSession
 import Webcrank.Wai
@@ -39,7 +43,7 @@ data WeekDay
   | Thursday
   | Friday
   | Saturday
-  deriving (Eq, Ord, Show, Enum, Bounded)
+  deriving (Eq, Ord, Show, Read, Enum, Bounded, Typeable)
 
 instance A.ToJSON WeekDay where
   toJSON d = case d of
@@ -62,23 +66,35 @@ instance A.FromJSON WeekDay where
     "Saturday" -> pure Saturday
     _ -> fail $ "invalid day of week '" ++ T.unpack d ++ "'"
 
-data Time = Time
-  { _timeHour :: Int
-  , _timeMinute :: Int
-  }
+data TimeWrapper = WrapTime { unWrapTime :: TimeOfDay }
+  deriving Show
 
-makeFields ''Time
-
-instance A.ToJSON Time where
-  toJSON (Time h m) =A.object
+instance A.ToJSON TimeWrapper where
+  toJSON (WrapTime (TimeOfDay h m _)) = A.object
     [ "hour" .= h
     , "minute" .= m
     ]
 
-instance A.FromJSON Time where
-  parseJSON = A.withObject "object" $ \o -> Time
-    <$> (parseHours =<< o .: "hour")
-    <*> (parseMinutes =<< o .: "minute")
+instance A.FromJSON TimeWrapper where
+  parseJSON = A.withObject "object" $ fmap WrapTime . parseTimeOfDay where
+    parseTimeOfDay o = TimeOfDay
+      <$> (parseHours =<< o .: "hour")
+      <*> (parseMinutes =<< o .: "minute")
+      <*> pure 0
+
+class HasHour s a | s -> a where
+  hour :: Lens' s a
+
+instance HasHour TimeOfDay Int where
+  {-# INLINE hour #-}
+  hour f (TimeOfDay h m s) = fmap (\h' -> TimeOfDay h' m s) (f h)
+
+class HasMinute s a | s -> a where
+  minute :: Lens' s a
+
+instance HasMinute TimeOfDay Int where
+  {-# INLINE minute #-}
+  minute f (TimeOfDay h m s) = fmap (\m' -> TimeOfDay h m' s) (f m)
 
 parseHours :: Int -> A.Parser Int
 parseHours n = if n >= 0 && n < 24
@@ -94,6 +110,7 @@ data Repeating
   = Weekly Int (Set WeekDay)
   -- | Daily Int
   -- | Monthly Int
+  deriving Show
 
 instance A.ToJSON Repeating where
   toJSON (Weekly n ds) = A.object
@@ -114,11 +131,11 @@ data Reminder = Reminder
   { _reminderIdent :: ReminderId
   , _reminderOauthId :: OAuthId
   , _reminderRoomId :: RoomId
-  , _reminderTime :: Time
+  , _reminderTime :: TimeOfDay
   , _reminderTz :: TZLabel
   , _reminderRepeating :: Repeating
   , _reminderMessage :: Text
-  }
+  } deriving Show
 
 makeFields ''Reminder
 
@@ -127,7 +144,7 @@ instance A.ToJSON Reminder where
     [ "id" .= view ident r
     , "oauthId" .= view oauthId r
     , "roomId" .= view roomId r
-    , "time" .= view time r
+    , "time" .= (WrapTime . view time $ r)
     , "tz" .= (T.decodeUtf8 . toTZName . view tz $ r)
     , "repeating" .= view repeating r
     , "message" .= view message r
@@ -138,7 +155,7 @@ instance A.FromJSON Reminder where
     <$> o .: "id"
     <*> o .: "oauthId"
     <*> o .: "roomId"
-    <*> o .: "time"
+    <*> fmap unWrapTime (o .: "time")
     <*> (parseTz =<< o .: "tz")
     <*> o .: "repeating"
     <*> o .: "message"
@@ -149,7 +166,8 @@ parseTz z = maybe badTz return . fromTZName . T.encodeUtf8 $ z where
 
 data NaggyAPI = NaggyAPI
   { apiInsertReminder :: Reminder -> Naggy ()
-  , apiLookupReminders :: OAuthId -> Naggy [Reminder]
+  , apiFoldAllReminders :: forall a. (a -> Reminder -> a) -> a -> Naggy a
+  , apiFoldReminders :: forall a. (a -> Reminder -> a) -> a -> OAuthId -> Naggy a
   , apiLookupReminder :: OAuthId -> ReminderId -> Naggy (Maybe Reminder)
   , apiDeleteReminder :: OAuthId -> ReminderId -> Naggy ()
   }

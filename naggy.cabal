@@ -15,6 +15,15 @@ build-type:         Simple
 
 data-files:         js/naggy.js
 
+extra-source-files:
+  .ghci
+  .gitignore
+  .travis.yml
+  HLint.hs
+  LICENSE
+  README.md
+  pg.sql
+
 source-repository   head
   type:             git
   location:         https://github.com/purefn/naggy.git
@@ -34,7 +43,7 @@ executable naggy
                   , HipBot.Naggy.Session
                   , HipBot.Naggy.Types
 
-  build-depends:    base                            >= 4.6 && < 5
+  build-depends:    base                            >=4.6 && <5
                   , aeson                           >=0.7.0.3 && <1
                   , bifunctors                      >=3.0 && <5
                   , blaze-builder                   >=0.2.1.4 && <0.4
@@ -44,10 +53,12 @@ executable naggy
                   , containers                      >=0.4.0 && <0.6
                   , cookie                          >=0.4 && <1
                   , exceptions                      >=0.1.1 && <1
-                  , hipbot                          >=0.1 && <1
+                  , hipbot                          >=0.2 && <1
                   , lens                            >=4.5 && <5
+                  , lens-datetime                   >=0.2 && <1
                   , lucid                           >=2.0 && <3
                   , mtl                             >=2.0.1 && <2.3
+                  , postgresql-simple               >=0.4 && <1
                   , safe                            >=0.2 && <1
                   , stm                             >=2.3 && <3
                   , time                            >=1.4 && <2
@@ -57,6 +68,7 @@ executable naggy
                   , unordered-containers            ==0.2.*
                   , utf8-string                     >=0.3.1 && <1.1
                   , uuid                            >=1.2.6 && <2
+                  , vector                          >=0.3 && <1
                   , wai                             >=3.0 && <4
                   , wai-extra                       >=3.0 && <4
                   , wai-lens                        >=0.1 && <1

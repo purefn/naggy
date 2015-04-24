@@ -9,6 +9,7 @@ import Control.Lens
 import Control.Monad.Reader
 import Data.Foldable
 import qualified Data.HashMap.Strict as HashMap
+import Data.Monoid
 import qualified Data.Set as Set
 import Data.Time.Calendar
 import Data.Time.Calendar.WeekDate
@@ -33,11 +34,24 @@ startReminder r = do
 
 runReminder :: Reminder -> Naggy ()
 runReminder r = do
-  -- TODO maybe log current time and how long we'll delay at debug level?
-  liftIO . (threadDelay =<<) . microsToNext $ r
+  liftIO $ do
+    delay <- microsToNext r
+    now <- getCurrentTime
+    -- TODO get rid of this once confident the timing is right
+    print $ mconcat
+      [ "Pausing at "
+      , show now
+      , " for "
+      , show delay
+      , "ms for reminder "
+      , show r
+      ]
+    threadDelay delay
   bot <- view hipBot
-  void $ sendNotification bot (r ^. oauthId) (r ^. roomId . to Right) (r ^. message . to TextNotification)
-  -- TODO add logging of failures
+  e <- sendNotification bot (r ^. oauthId) (r ^. roomId . to Right) (r ^. message . to TextNotification)
+  -- TODO use a logging library instead of just printing
+  maybe (return ()) (liftIO . print) e
+  runReminder r
 
 microsToNext :: Reminder -> IO Int
 microsToNext r = case r ^. repeating of

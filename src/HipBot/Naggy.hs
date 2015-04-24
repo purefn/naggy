@@ -12,6 +12,7 @@ import qualified Data.List as List
 import Data.Maybe
 import Data.Monoid
 import qualified Data.Text as T
+import Database.PostgreSQL.Simple
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai.Lens
@@ -26,28 +27,32 @@ import HipBot.Naggy.API as Naggy
 import HipBot.Naggy.ConfigPage
 import HipBot.Naggy.Descriptor
 import HipBot.Naggy.Resources
+import HipBot.Naggy.Scheduling
 import HipBot.Naggy.Types
 
 import Paths_naggy
 
-config :: IO (AbsoluteURI, Int)
-config = (,) <$> baseUri <*> port where
-  baseUri = fromMaybe "http://localhost:8080" . (>>= parseAbsoluteURI) <$> lookupEnv "BASE_URI"
-  port = fromMaybe 8080 . (>>= readMay) <$> lookupEnv "PORT"
-
 main :: IO ()
 main = do
-  (baseUri, port) <- config
-  bot <- flip newHipBot (descriptor baseUri) =<< HipBot.stmAPI
-  api <- Naggy.stmAPI
-  dat <- initialNaggyData api bot
-  putStrLn $ "Starting on port " ++ show port ++ " with base URI " ++ show baseUri
+  (baseUri, port, db) <- config
+  conn <- connectPostgreSQL db
+  bot <- newHipBot (HipBot.pgAPI conn) (descriptor baseUri)
+  dat <- initialNaggyData (Naggy.pgAPI conn) bot
+  runNaggy (forAllReminders startReminder) dat
+  putStrLn $ "Starting on port " <> show port <> " with base URI " <> show baseUri
   run dat baseUri port $ mconcat
     [ hipBotResources bot
     , "configure" ==> configResource bot configPage
     , "reminders" ==> remindersResource
     , "reminders" </> param ==> reminderResource
     ]
+
+config :: IO (AbsoluteURI, Int, B.ByteString)
+config = (,,) <$> baseUri <*> port <*> db where
+  baseUri = fromMaybe "http://localhost:8080" . (>>= parseAbsoluteURI) <$> lookupEnv "BASE_URI"
+  port = fromMaybe 8080 . (>>= readMay) <$> lookupEnv "PORT"
+  db = maybe (error "DATABASE_URL environment variable required") B.fromString
+    <$> lookupEnv "DATABASE_URL"
 
 run :: NaggyData -> AbsoluteURI -> Int -> Dispatcher (WaiResource Naggy) -> IO ()
 run dat baseUri port = Warp.run port . logStdout . serveStatic . disp where

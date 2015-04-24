@@ -62,9 +62,7 @@ run dat baseUri port = Warp.run port . logStdout . serveStatic . disp where
 serveStatic :: Wai.Middleware
 serveStatic app req respond = case req ^. pathInfo of
   "s" : p -> do
-    print p
     f <- getStaticFilePath p
-    print f
     respond $ maybe (Wai.responseLBS notFound404 [] "") (\fp -> Wai.responseFile ok200 [] fp Nothing) f
   _ -> app req respond
 

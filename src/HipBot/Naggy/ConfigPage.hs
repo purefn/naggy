@@ -7,7 +7,6 @@ module HipBot.Naggy.ConfigPage
 import Control.Applicative
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as A
-import Data.Functor
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as LT
@@ -44,3 +43,8 @@ encodeToText' = LT.toStrict . LT.toLazyText . A.encodeToTextBuilder . A.toJSON
 
 timezones :: [T.Text]
 timezones = T.decodeUtf8 . toTZName <$> enumFromTo minBound maxBound
+
+-- Defined here for backwards compat with base <4.7
+($>) :: Functor f => f a -> b -> f b
+($>) = flip (<$)
+{-# INLINE ($>) #-}

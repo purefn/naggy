@@ -30,7 +30,7 @@ foldAllReminders :: (a -> Reminder -> a) -> a -> Naggy a
 foldAllReminders f a = view naggyAPI >>= \api -> apiFoldAllReminders api f a
 
 forAllReminders :: (Reminder -> Naggy ()) -> Naggy ()
-forAllReminders f = join . foldAllReminders (const f) $ return ()
+forAllReminders f = join . foldAllReminders (\n -> (n *>) . f) $ return ()
 
 foldReminders
   :: (a -> Reminder -> a)

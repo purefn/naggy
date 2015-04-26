@@ -21,10 +21,14 @@ import Database.PostgreSQL.Simple.FromRow
 import Safe
 
 import HipBot
+import HipBot.Naggy.Scheduling
 import HipBot.Naggy.Types
 
 insertReminder :: Reminder -> Naggy ()
-insertReminder r = view naggyAPI >>= \api -> apiInsertReminder api r
+insertReminder r = do
+  api <- view naggyAPI
+  apiInsertReminder api r
+  startReminder r
 
 foldAllReminders :: (a -> Reminder -> a) -> a -> Naggy a
 foldAllReminders f a = view naggyAPI >>= \api -> apiFoldAllReminders api f a
@@ -52,7 +56,18 @@ deleteReminder
   :: OAuthId
   -> ReminderId
   -> Naggy ()
-deleteReminder oid rid = view naggyAPI >>= \api -> apiDeleteReminder api oid rid
+deleteReminder oid rid = do
+  api <- view naggyAPI
+  apiDeleteReminder api oid rid
+  stopReminder oid rid
+
+deleteReminders
+  :: OAuthId
+  -> Naggy ()
+deleteReminders oid = do
+  api <- view naggyAPI
+  apiDeleteReminders api oid
+  stopReminders oid
 
 stmAPI :: IO NaggyAPI
 stmAPI = do
@@ -73,6 +88,9 @@ stmAPI = do
           fmap (List.find (\r -> r ^. oauthId == oid && r ^. ident == rid)) .
           readTVar $
           rs
+    , apiDeleteReminders = \oid ->
+        liftIO . atomically . modifyTVar' rs $
+          filter (\r -> r ^. oauthId /= oid)
     , apiDeleteReminder = \oid rid ->
         liftIO . atomically . modifyTVar' rs $
           filter (\r -> r ^. oauthId /= oid && r ^. ident /= rid)
@@ -106,6 +124,9 @@ pgAPI conn = NaggyAPI
   , apiLookupReminder = \oid rid ->
       let q = "select " <> pgFields <> " from naggy_reminders where oauthId = ? and id = ?"
       in liftIO . fmap (fmap unWrapRem . headMay) . query conn q $ (oid, rid)
+  , apiDeleteReminders = \oid ->
+      let stmt = "delete from naggy_reminders where oauthId = ?"
+      in liftIO . void . PG.execute conn stmt . Only $ oid
   , apiDeleteReminder = \oid rid ->
       let stmt = "delete from naggy_reminders where oauthId = ? and id = ?"
       in liftIO . void . PG.execute conn stmt $ (oid, rid)

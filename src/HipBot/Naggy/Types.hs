@@ -21,6 +21,7 @@ import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import Data.Monoid
 import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -64,7 +65,7 @@ instance A.FromJSON WeekDay where
     "Thursday" -> pure Thursday
     "Friday" -> pure Friday
     "Saturday" -> pure Saturday
-    _ -> fail $ "invalid day of week '" ++ T.unpack d ++ "'"
+    _ -> fail $ "invalid day of week '" <> T.unpack d <> "'"
 
 data TimeWrapper = WrapTime { unWrapTime :: TimeOfDay }
   deriving Show
@@ -99,12 +100,12 @@ instance HasMinute TimeOfDay Int where
 parseHours :: Int -> A.Parser Int
 parseHours n = if n >= 0 && n < 24
   then return n
-  else fail $ "expecting hour of day, but '" ++ show n ++ "' is out of range"
+  else fail $ "expecting hour of day, but '" <> show n <> "' is out of range"
 
 parseMinutes :: Int -> A.Parser Int
 parseMinutes n = if n >= 0 && n < 60
   then return n
-  else fail $ "expecting minutes of hour, but '" ++ show n ++ "' is out of range"
+  else fail $ "expecting minutes of hour, but '" <> show n <> "' is out of range"
 
 data Repeating
   = Weekly Int (Set WeekDay)
@@ -162,13 +163,14 @@ instance A.FromJSON Reminder where
 
 parseTz :: Text -> A.Parser TZLabel
 parseTz z = maybe badTz return . fromTZName . T.encodeUtf8 $ z where
-  badTz = fail $ "unrecognized timezone '" ++ T.unpack z ++ "'"
+  badTz = fail $ "unrecognized timezone '" <> T.unpack z <> "'"
 
 data NaggyAPI = NaggyAPI
   { apiInsertReminder :: Reminder -> Naggy ()
   , apiFoldAllReminders :: forall a. (a -> Reminder -> a) -> a -> Naggy a
   , apiFoldReminders :: forall a. (a -> Reminder -> a) -> a -> OAuthId -> Naggy a
   , apiLookupReminder :: OAuthId -> ReminderId -> Naggy (Maybe Reminder)
+  , apiDeleteReminders :: OAuthId -> Naggy ()
   , apiDeleteReminder :: OAuthId -> ReminderId -> Naggy ()
   }
 
@@ -176,7 +178,7 @@ data NaggyData = NaggyData
   { _naggyDataNaggyAPI :: NaggyAPI
   , _naggyDataHipBot :: HipBot Naggy
   , _naggyDataCsKey :: Key
-  , _naggyDataThreads :: TVar (HashMap (OAuthId, ReminderId) ThreadId)
+  , _naggyDataThreads :: TVar (HashMap OAuthId (HashMap ReminderId ThreadId))
   }
 
 initialNaggyData :: NaggyAPI -> HipBot Naggy -> IO NaggyData

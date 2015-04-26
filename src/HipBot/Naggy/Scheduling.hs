@@ -1,6 +1,7 @@
 module HipBot.Naggy.Scheduling
   ( startReminder
   , stopReminder
+  , stopReminders
   ) where
 
 import Control.Concurrent
@@ -30,7 +31,8 @@ startReminder r = do
     rid = r ^. ident
   stopReminder oid rid
   tid <- forkNaggy (runReminder r)
-  liftIO . atomically . modifyTVar' tvar . HashMap.insert (oid, rid) $ tid
+  liftIO . atomically . modifyTVar' tvar $
+    (at oid . non HashMap.empty . at rid .~ Just tid)
 
 runReminder :: Reminder -> Naggy ()
 runReminder r = do
@@ -82,9 +84,19 @@ stopReminder oid rid  = do
   tvar <- view threads
   liftIO $ do
     tid <- atomically $ do
-      ts <- readTVar tvar
-      writeTVar tvar . HashMap.delete (oid, rid) $ ts
-      return . HashMap.lookup (oid, rid) $ ts
+      xs <- readTVar tvar
+      writeTVar tvar $ xs & at oid . non HashMap.empty . at rid .~ Nothing
+      return $ xs ^. at oid . non HashMap.empty . at rid
     traverse_ killThread tid
+
+stopReminders :: OAuthId -> Naggy ()
+stopReminders oid = do
+  tvar <- view threads
+  liftIO $ do
+    tids <- atomically $ do
+      xs <- readTVar tvar
+      writeTVar tvar $ xs & at oid .~ Nothing
+      return $ xs ^. at oid . non HashMap.empty . to HashMap.elems
+    traverse_ killThread tids
 
 

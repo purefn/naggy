@@ -36,7 +36,7 @@ main :: IO ()
 main = do
   (baseUri, port, db) <- config
   conn <- connectPostgreSQL db
-  bot <- newHipBot (HipBot.pgAPI conn) (descriptor baseUri)
+  bot <- newHipBot (HipBot.pgAPI conn) (descriptor baseUri) deleteReminders
   dat <- initialNaggyData (Naggy.pgAPI conn) bot
   runNaggy (forAllReminders startReminder) dat
   putStrLn $ "Starting on port " <> show port <> " with base URI " <> show baseUri

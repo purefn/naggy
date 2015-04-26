@@ -25,7 +25,6 @@ import Webcrank.Wai
 
 import HipBot
 import HipBot.Naggy.API as Naggy
-import HipBot.Naggy.Scheduling
 import HipBot.Naggy.Session
 import HipBot.Naggy.Types
 
@@ -61,7 +60,6 @@ putReminder = withSession $ \(oid, room) -> do
   r <- parseReminder rid oid room =<< liftIO . Wai.lazyRequestBody =<< view request
   lift . lift $ do
     insertReminder r
-    startReminder r
     reminder ?= r
   putResponseHeader hContentType "application/json"
   writeLBS . A.encode $ r
@@ -84,10 +82,7 @@ reminderResource rid = resource
            _ -> return . Unauthorized $ "Naggy"
       _ -> return a
   , contentTypesProvided = return [("application/json", withReminder $ return . A.encode)]
-  , deleteResource = withSession $ \(oid, _) -> lift . lift $ do
-      stopReminder oid rid
-      deleteReminder oid rid
-      return True
+  , deleteResource = withSession $ \(oid, _) -> lift . lift $ True <$ deleteReminder oid rid
   }
 
 withReminder :: (Reminder -> HaltT NaggyCrank a) -> HaltT NaggyCrank a

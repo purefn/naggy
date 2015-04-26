@@ -7,7 +7,7 @@ import HipBot
 
 descriptor :: AbsoluteURI -> AddOn
 descriptor baseUri =
-  addOn "com.atlassian.labs.naggy" "Naggy"
+  defaultAddOn "com.atlassian.labs.naggy" "Naggy"
     "A bot for scheduling regular reminders (nags)."
     (defaultLinks baseUri
       & homepage ?~ baseUri)

@@ -1,9 +1,9 @@
 { mkDerivation, aeson, base, bifunctors, blaze-builder, bytestring
 , cereal, clientsession, containers, cookie, exceptions, hipbot
-, lens, lens-datetime, lucid, mtl, postgresql-simple, safe, stdenv
-, stm, text, time, transformers, tz, unordered-containers
-, utf8-string, uuid, vector, wai, wai-extra, wai-lens, warp
-, webcrank-wai
+, hslogger, lens, lens-datetime, lucid, mtl, postgresql-simple
+, safe, stdenv, stm, text, time, transformers, tz
+, unordered-containers, utf8-string, uuid, vector, wai, wai-extra
+, wai-lens, warp, webcrank-wai
 }:
 mkDerivation {
   pname = "naggy";
@@ -13,8 +13,8 @@ mkDerivation {
   isExecutable = true;
   buildDepends = [
     aeson base bifunctors blaze-builder bytestring cereal clientsession
-    containers cookie exceptions hipbot lens lens-datetime lucid mtl
-    postgresql-simple safe stm text time transformers tz
+    containers cookie exceptions hipbot hslogger lens lens-datetime
+    lucid mtl postgresql-simple safe stm text time transformers tz
     unordered-containers utf8-string uuid vector wai wai-extra wai-lens
     warp webcrank-wai
   ];

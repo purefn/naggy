@@ -19,6 +19,7 @@ import Data.Time.LocalTime
 import Data.Time.Zones
 import Data.Time.Zones.All
 import Prelude hiding (elem)
+import System.Log.Logger
 
 import HipBot
 import HipBot.Naggy.Types
@@ -39,8 +40,7 @@ runReminder r = do
   liftIO $ do
     delay <- microsToNext r
     now <- getCurrentTime
-    -- TODO get rid of this once confident the timing is right
-    print $ mconcat
+    debugM "naggy" $ mconcat
       [ "Pausing at "
       , show now
       , " for "
@@ -51,8 +51,7 @@ runReminder r = do
     threadDelay delay
   bot <- view hipBot
   e <- sendNotification bot (r ^. oauthId) (r ^. roomId . to Right) (r ^. message . to TextNotification)
-  -- TODO use a logging library instead of just printing
-  maybe (return ()) (liftIO . print) e
+  liftIO . traverse_ (errorM "naggy" . show) $ e
   runReminder r
 
 microsToNext :: Reminder -> IO Int

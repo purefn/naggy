@@ -13,6 +13,7 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as LT
 import Data.Time.Zones.All
 import Lucid
+import Prelude
 import Webcrank.Wai
 
 import HipBot

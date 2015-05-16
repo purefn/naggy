@@ -11,12 +11,14 @@ import qualified Data.ByteString.UTF8 as B
 import qualified Data.List as List
 import Data.Maybe
 import Data.Monoid
+import Data.Pool
 import qualified Data.Text as T
-import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple as PSQL
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai.Lens
 import Network.Wai.Middleware.RequestLogger
+import Prelude
 import Safe
 import System.Environment (lookupEnv)
 import Webcrank.Wai
@@ -35,9 +37,9 @@ import Paths_naggy
 main :: IO ()
 main = do
   (baseUri, port, db) <- config
-  conn <- connectPostgreSQL db
-  bot <- newHipBot (HipBot.pgAPI conn) (descriptor baseUri) deleteReminders
-  dat <- initialNaggyData (Naggy.pgAPI conn) bot
+  pool <- createPool (connectPostgreSQL db) PSQL.close 1 10 10
+  bot <- newHipBot (HipBot.pgAPI pool) (descriptor baseUri) deleteReminders
+  dat <- initialNaggyData (Naggy.pgAPI pool) bot
   runNaggy (forAllReminders startReminder) dat
   putStrLn $ "Starting on port " <> show port <> " with base URI " <> show baseUri
   run dat baseUri port $ mconcat

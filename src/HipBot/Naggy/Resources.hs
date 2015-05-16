@@ -21,6 +21,7 @@ import qualified Data.Text.Lazy.Builder as LT
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import qualified Network.Wai as Wai
+import Prelude
 import Webcrank.Wai
 
 import HipBot

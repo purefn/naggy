@@ -9,8 +9,10 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import qualified Data.ByteString.UTF8 as B
+import Data.Int
 import qualified Data.List as List
 import Data.Monoid
+import Data.Pool
 import qualified Data.Set as Set
 import Data.Time.Zones.All
 import Data.Typeable
@@ -18,6 +20,7 @@ import qualified Data.Vector as V
 import Database.PostgreSQL.Simple as PG
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.FromRow
+import Prelude
 import Safe
 
 import HipBot
@@ -96,8 +99,8 @@ stmAPI = do
           filter (\r -> r ^. oauthId /= oid && r ^. ident /= rid)
     }
 
-pgAPI :: Connection -> NaggyAPI
-pgAPI conn = NaggyAPI
+pgAPI :: Pool Connection -> NaggyAPI
+pgAPI pool = NaggyAPI
   { apiInsertReminder = \r ->
       let
         stmt = "insert into naggy_reminders (" <> pgFields <> ") values (?, ?, ?, ?, ?, ?, ?::weekday[], ?)"
@@ -114,23 +117,35 @@ pgAPI conn = NaggyAPI
           , r ^. message
           )
       in
-        liftIO . void . execute conn stmt $ row
+        liftIO . void . executePool pool stmt $ row
   , apiFoldAllReminders = \f a ->
       let q = "select " <> pgFields <> " from naggy_reminders"
-      in liftIO . PG.fold_ conn q a $ \b -> return . f b . unWrapRem
+      in liftIO . foldPool_ pool q a $ \b -> return . f b . unWrapRem
   , apiFoldReminders = \f a oid ->
       let q = "select " <> pgFields <> " from naggy_reminders where oauthId = ?"
-      in liftIO . PG.fold conn q (Only oid) a $ \b -> return . f b . unWrapRem
+      in liftIO . foldPool pool q (Only oid) a $ \b -> return . f b . unWrapRem
   , apiLookupReminder = \oid rid ->
       let q = "select " <> pgFields <> " from naggy_reminders where oauthId = ? and id = ?"
-      in liftIO . fmap (fmap unWrapRem . headMay) . query conn q $ (oid, rid)
+      in liftIO . fmap (fmap unWrapRem . headMay) . queryPool pool q $ (oid, rid)
   , apiDeleteReminders = \oid ->
       let stmt = "delete from naggy_reminders where oauthId = ?"
-      in liftIO . void . PG.execute conn stmt . Only $ oid
+      in liftIO . void . executePool pool stmt . Only $ oid
   , apiDeleteReminder = \oid rid ->
       let stmt = "delete from naggy_reminders where oauthId = ? and id = ?"
-      in liftIO . void . PG.execute conn stmt $ (oid, rid)
+      in liftIO . void . executePool pool stmt $ (oid, rid)
   }
+
+executePool :: ToRow q => Pool Connection -> Query -> q -> IO Int64
+executePool pool stmt = withResource pool . (\row conn -> execute conn stmt row)
+
+queryPool :: (ToRow q, FromRow r) => Pool Connection -> Query -> q -> IO [r]
+queryPool pool q = withResource pool . (\a conn -> query conn q a)
+
+foldPool_ :: FromRow r => Pool Connection -> Query -> b -> (b -> r -> IO b) -> IO b
+foldPool_ pool q a = withResource pool . (\f conn -> PG.fold_ conn q a f)
+
+foldPool :: (FromRow row, ToRow params) => Pool Connection -> Query -> params -> b -> (b -> row -> IO b) -> IO b
+foldPool pool q ps a = withResource pool . (\f conn -> PG.fold conn q ps a f)
 
 pgFields :: Query
 pgFields = "id, oauthId, roomId, time, timezone, every, weekdays, message"

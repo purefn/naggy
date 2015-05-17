@@ -12,6 +12,7 @@ import qualified Halogen.HTML as H
 import qualified Halogen.HTML.Attributes as A
 import qualified Halogen.HTML.Events as A
 import qualified Halogen.HTML.Events.Monad as E
+import Optic.Core
 
 import Naggy.Ajax
 import Naggy.Types
@@ -36,7 +37,7 @@ renderList rs loading = H.div_ [ title, reminders_ ] where
     , H.tbody_ (reminder <$> rs)
     ]
   reminder r@(Reminder _ (ReminderData o)) = H.tr_
-    [ H.td_ [ H.text o.message ]
+    [ H.td_ [ H.text (o.notification ^. message) ]
     , H.td_ [ H.text (show o.time ++ " " ++ o.tz) ]
     , H.td_ [ H.text $ show o.repeating ]
     , H.td 
@@ -77,7 +78,7 @@ newReminder = E.async $ makeAff $ \_ k -> do
     { time: Time { hour: h, minute: m }
     , tz: tz
     , repeating: Weekly 1 (Set.singleton d)
-    , message: ""
+    , notification: TextNotification ""
     }
 
 foreign import currentTzName

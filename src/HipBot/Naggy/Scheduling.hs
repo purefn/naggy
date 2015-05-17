@@ -50,7 +50,7 @@ runReminder r = do
       ]
     threadDelay delay
   bot <- view hipBot
-  e <- sendNotification bot (r ^. oauthId) (r ^. roomId . to Right) (r ^. message . to TextNotification)
+  e <- sendNotification bot (r ^. oauthId) (r ^. roomId . to Right) (r ^. notification)
   liftIO . traverse_ (errorM "naggy" . show) $ e
   runReminder r
 

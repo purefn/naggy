@@ -8,6 +8,7 @@ CREATE TABLE naggy_reminders (
   timezone                 varchar(25) NOT NULL,
   every                    integer DEFAULT 1,
   weekdays                 weekday[] NOT NULL,
+  mtype                    char(4) NOT NULL,
   message                  varchar(255) NOT NULL,
   PRIMARY KEY(oauthId,id)
 );

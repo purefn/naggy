@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -136,7 +137,7 @@ data Reminder = Reminder
   , _reminderTime :: TimeOfDay
   , _reminderTz :: TZLabel
   , _reminderRepeating :: Repeating
-  , _reminderMessage :: Text
+  , _reminderNotification :: Notification
   } deriving Show
 
 makeFields ''Reminder
@@ -149,7 +150,7 @@ instance A.ToJSON Reminder where
     , "time" .= (WrapTime . view time $ r)
     , "tz" .= (T.decodeUtf8 . toTZName . view tz $ r)
     , "repeating" .= view repeating r
-    , "message" .= view message r
+    , "notification" .= (WrapNotif . view notification $ r)
     ]
 
 instance A.FromJSON Reminder where
@@ -160,7 +161,22 @@ instance A.FromJSON Reminder where
     <*> fmap unWrapTime (o .: "time")
     <*> (parseTz =<< o .: "tz")
     <*> o .: "repeating"
-    <*> o .: "message"
+    <*> fmap unWrapNotif (o .: "notification")
+
+newtype NotifWrapper = WrapNotif { unWrapNotif :: Notification }
+
+instance A.FromJSON NotifWrapper where
+  parseJSON = A.withObject "object" (fmap WrapNotif . parse) where
+    parse o = ntype o <*> o .: "message"
+    ntype o = o .: "type" >>= \case
+      "text" -> return TextNotification
+      "html" -> return HtmlNotification
+      t -> fail $ "unrecognized message type '" <> T.unpack t <> "'"
+
+instance A.ToJSON NotifWrapper where
+  toJSON (WrapNotif n) = A.object $ case n of
+    TextNotification t -> [ "type" .= ("text" :: Text), "message" .= t]
+    HtmlNotification t -> [ "type" .= ("html" :: Text), "message" .= t]
 
 parseTz :: Text -> A.Parser TZLabel
 parseTz z = maybe badTz return . fromTZName . T.encodeUtf8 $ z where

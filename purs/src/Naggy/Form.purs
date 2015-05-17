@@ -12,6 +12,7 @@ import qualified Halogen.HTML.Attributes as A
 import qualified Halogen.HTML.Events as A
 import qualified Halogen.HTML.Events.Monad as E
 import Network.HTTP.Affjax
+import Optic.Core
 
 import Naggy.Ajax
 import Naggy.Types
@@ -36,15 +37,17 @@ renderForm form@(ReminderForm es r@(ReminderData ro)) = H.div_ [ title, fields, 
           ]
       , [ timeField form
         , repeatingField form
+        , typeField form
         , messageField form
         ]
       ]
   buttons = H.p
     [ A.classes [ A.className "aui-buttons" ] ]
     [ let
-        handlers = if not (hasFieldErrors es) && String.length ro.message > 0
-          then [ A.onclick $ const $ pure $ addReminder r ]
-          else [ A.disabled true ]
+        handlers = 
+          if not (hasFieldErrors es) && String.length (ro.notification ^. message) > 0
+            then [ A.onclick $ const $ pure $ addReminder r ]
+            else [ A.disabled true ]
       in
         H.button
           ([ A.classes (A.className <$> [ "aui-button", "aui-button-primary" ])] ++ handlers)

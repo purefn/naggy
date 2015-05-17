@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module HipBot.Naggy.API where
@@ -103,9 +104,12 @@ pgAPI :: Pool Connection -> NaggyAPI
 pgAPI pool = NaggyAPI
   { apiInsertReminder = \r ->
       let
-        stmt = "insert into naggy_reminders (" <> pgFields <> ") values (?, ?, ?, ?, ?, ?, ?::weekday[], ?)"
+        stmt = "insert into naggy_reminders (" <> pgFields <> ") values (?, ?, ?, ?, ?, ?, ?::weekday[], ?, ?)"
         (every, ds) = case r ^. repeating of
           Weekly n days -> (n, fmap show . V.fromList . Set.toList $ days)
+        (mtype, msg) = case r ^. notification of
+          TextNotification t -> ("text" :: B.ByteString, t)
+          HtmlNotification t -> ("html" :: B.ByteString, t)
         row =
           ( r ^. ident
           , r ^. oauthId
@@ -114,7 +118,8 @@ pgAPI pool = NaggyAPI
           , r ^. tz .to toTZName
           , every
           , ds
-          , r ^. message
+          , mtype
+          , msg
           )
       in
         liftIO . void . executePool pool stmt $ row
@@ -148,7 +153,7 @@ foldPool :: (FromRow row, ToRow params) => Pool Connection -> Query -> params ->
 foldPool pool q ps a = withResource pool . (\f conn -> PG.fold conn q ps a f)
 
 pgFields :: Query
-pgFields = "id, oauthId, roomId, time, timezone, every, weekdays, message"
+pgFields = "id, oauthId, roomId, time, timezone, every, weekdays, mtype, message"
 
 newtype RemWrapper = WrapRem { unWrapRem :: Reminder }
 
@@ -163,7 +168,15 @@ reminderRowParser = Reminder
   <*> field
   <*> fieldWith tzFieldParser
   <*> repeatingRowParser
-  <*> field
+  <*> notificationRowParser
+
+notificationRowParser :: RowParser Notification
+notificationRowParser = fieldWith typeParser <*> field where
+  typeParser f = maybe (unexpectedNull f) parse where
+    parse = \case
+      "text" -> return TextNotification
+      "html" -> return HtmlNotification
+      t -> returnError ConversionFailed f ("unrecognized notification type '" <> B.toString t <> "'")
 
 tzFieldParser :: FieldParser TZLabel
 tzFieldParser f = fmap unWrapTZLabel . maybe (unexpectedNull f) parse where

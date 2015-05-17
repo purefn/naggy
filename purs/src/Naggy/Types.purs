@@ -71,7 +71,6 @@ newtype Time = Time
   , minute :: MinuteOfHour
   }
 
-
 instance showTime :: Show Time where
   show (Time o) = show o.hour ++ ":" ++ show o.minute
 
@@ -131,11 +130,33 @@ hour f o = f o.hour <#> \a -> o { hour = a }
 minute :: forall b a r. Lens { minute :: a | r } { minute :: b | r } a b
 minute f o = f o.minute <#> \a -> o { minute = a }
 
+data Notification = TextNotification String | HtmlNotification String
+
+isHtmlNotification :: Notification -> Boolean
+isHtmlNotification n = case n of
+  HtmlNotification _ -> true
+  _ -> false
+
+instance notificationToJSON :: ToJSON Notification where
+  toJSON n = object $ case n of
+    TextNotification t -> [ "type" .= "text", "message" .= t ]
+    HtmlNotification t -> [ "type" .= "html", "message" .= t ]
+
+instance notificationFromJSON :: FromJSON Notification where
+  parseJSON (JObject o) = do
+    f <- (o .: "type") >>= \t -> case t of
+      "text" -> return TextNotification
+      "html" -> return HtmlNotification
+      _ -> fail ("unexpected type '" <> t <> "'")
+    msg <- o .: "message"
+    return (f msg)
+  parseJSON _ = fail "expected object for Notification"
+
 newtype ReminderData = ReminderData
   { time :: Time
   , tz :: String 
   , repeating :: Repeating
-  , message :: String
+  , notification :: Notification
   }
 
 instance reminderToJSON :: ToJSON ReminderData where
@@ -143,7 +164,7 @@ instance reminderToJSON :: ToJSON ReminderData where
     [ "time" .= o.time
     , "tz" .= o.tz
     , "repeating" .= o.repeating
-    , "message" .= o.message
+    , "notification" .= o.notification
     ]
 
 instance reminderDataFromJSON :: FromJSON ReminderData where
@@ -151,16 +172,16 @@ instance reminderDataFromJSON :: FromJSON ReminderData where
     t <- o .: "time"
     tz <- o .: "tz"
     r <- o .: "repeating"
-    m <- o .: "message"
+    n <- o .: "notification"
     return $ ReminderData
       { time: t
       , tz: tz
       , repeating: r
-      , message: m
+      , notification: n
     }
   parseJSON _ = fail "expected object for ReminderData"
 
-_ReminderData :: LensP ReminderData { time :: Time, tz :: String, repeating :: Repeating, message :: String }
+_ReminderData :: LensP ReminderData { time :: Time, tz :: String, repeating :: Repeating, notification :: Notification }
 _ReminderData f (ReminderData o) = ReminderData <$> f o
 
 time :: forall b a r. Lens { time :: a | r } { time :: b | r } a b
@@ -172,8 +193,17 @@ tz f o = f o.tz <#> \a -> o { tz = a }
 repeating :: forall b a r. Lens { repeating :: a | r } { repeating :: b | r } a b
 repeating f o = f o.repeating <#> \a -> o { repeating = a }
 
-message :: forall b a r. Lens { message :: a | r } { message :: b | r } a b
-message f o = f o.message <#> \a -> o { message = a }
+notification :: forall b a r. Lens { notification :: a | r } { notification :: b | r } a b
+notification f o = f o.notification <#> \a -> o { notification = a }
+
+message :: LensP Notification String
+message = lens get set where
+  get n = case n of
+    TextNotification t -> t
+    HtmlNotification t -> t
+  set n t = case n of
+    TextNotification _ -> TextNotification t
+    HtmlNotification _ -> HtmlNotification t
 
 data FormErrors = FormErrors (Maybe String) (Map.Map String String)
 

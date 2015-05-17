@@ -9,6 +9,6 @@ CREATE TABLE naggy_reminders (
   every                    integer DEFAULT 1,
   weekdays                 weekday[] NOT NULL,
   mtype                    char(4) NOT NULL,
-  message                  varchar(255) NOT NULL,
+  message                  text NOT NULL,
   PRIMARY KEY(oauthId,id)
 );

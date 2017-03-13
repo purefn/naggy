@@ -1,0 +1,96 @@
+name:               hipbot
+version:            0.7
+license:            BSD3
+license-file:       LICENSE
+author:             Richard Wallace <rwallace@atlassian.com>
+maintainer:         Richard Wallace <rwallace@atlassian.com>
+copyright:          (c) 2017 Richard Wallace
+synopsis:           A library for building HipChat Bots
+description:        A library for building HipChat Bots
+category:           Web
+homepage:           https://github.com/purefn/hipbot
+bug-reports:        https://github.com/purefn/hipbot/issues
+cabal-version:      >= 1.8
+build-type:         Simple
+
+extra-source-files:
+  .ghci
+  .gitignore
+  .travis.yml
+  HLint.hs
+  LICENSE
+  README.md
+
+source-repository   head
+  type:             git
+  location:         https://github.com/purefn/hipbot.git
+
+library
+  ghc-options:      -Wall
+
+  hs-source-dirs:   src
+
+  exposed-modules:  HipBot
+                  , HipBot.API
+                  , HipBot.API.STM
+                  , HipBot.API.PG
+                  , HipBot.Card
+                  , HipBot.Descriptor
+                  , HipBot.Descriptor.AddOn
+                  , HipBot.Descriptor.APIConsumer
+                  , HipBot.Descriptor.Capabilities
+                  , HipBot.Descriptor.Configurable
+                  , HipBot.Descriptor.Dialog
+                  , HipBot.Descriptor.Glance
+                  , HipBot.Descriptor.Icon
+                  , HipBot.Descriptor.Installable
+                  , HipBot.Descriptor.Key
+                  , HipBot.Descriptor.Lenses
+                  , HipBot.Descriptor.Links
+                  , HipBot.Descriptor.Name
+                  , HipBot.Descriptor.OAuth2Provider
+                  , HipBot.Descriptor.Webhook
+                  , HipBot.Descriptor.WebPanel
+                  , HipBot.Http
+                  , HipBot.Http.Auth
+                  , HipBot.Internal.HipBot
+                  , HipBot.Internal.JSON
+                  , HipBot.Internal.OAuth
+                  , HipBot.Internal.URIRefOrphans
+                  , HipBot.Notification
+                  , HipBot.Types
+                  -- , HipBot.Webhooks
+
+  build-depends:    base                            >=4.6 && <5
+                  , aeson                           >=0.10 && <1.1
+                  , bifunctors                      >=3.0 && <6
+                  , blaze-builder                   >=0.2.1.4 && <1
+                  , bytestring                      >=0.9.1.10 && <0.11
+                  , cryptonite                      >=0.19 && <1
+                  , either                          >=3.1 && <5
+                  , exceptions                      >=0.1.1 && <1
+                  , file-embed                      >=0.0.10 && <0.1
+                  , http-client                     >=0.4.6 && <1
+                  , http-client-tls                 >=0.2 && <1
+                  , http-types                      >=0.8.0 && <0.10
+                  , jose-jwt                        >=0.7 && <0.8
+                  , lens                            >=4.5 && <5
+                  , monad-logger                    >=0.3.8 && <0.4
+                  , mtl                             >=2.0.1 && <2.3
+                  , postgresql-simple               >=0.4 && <1
+                  , postgresql-simple-migration     >=0.1.9 && <0.2
+                  , resource-pool                   >=0.2 && <1
+                  , safe                            >=0.2 && <1
+                  , servant                         >=0.8 && <0.10
+                  , servant-server                  >=0.8 && <0.10
+                                                    -- ^ TODO test with 0.10
+                  , stm                             >=2.3 && <3
+                  , text                            >=0.11 && <1.3
+                  , time                            >=1.4 && <2
+                  , transformers                    >=0.2 && <0.6
+                  , unordered-containers            ==0.2.*
+                  , uri-bytestring                  >=0.2 && <0.3
+                  , utf8-string                     >=0.3.1 && <1.1
+                  , wai                             >=3.0 && <4
+                  , wreq                            >=0.2 && <1
+

@@ -1,0 +1,29 @@
+name: naggy-ui
+version: 0.1
+cabal-version: >=1.8
+build-type: Simple
+license: BSD3
+
+executable naggy-ui
+  main-is:          Main.hs
+
+  buildable:        True
+
+  hs-source-dirs:   src
+
+  -- ghc-options:      -Wall -Werror -threaded -with-rtsopts=-N3
+  ghc-options:      -Wall -threaded -with-rtsopts=-N3
+
+  build-depends:    base
+                  , aeson
+                  , bytestring
+                  , containers
+                  , ghcjs-base
+                  , lens
+                  , mtl
+                  , protolude
+                  , react-flux
+                  , text
+                  , time
+                  , tz
+

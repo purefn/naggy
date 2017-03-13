@@ -1,0 +1,31 @@
+name: naggy
+
+description: A HipChat reminder add-on
+
+links:
+  binary:
+    type: docker
+    name: docker.atlassian.io/rwallace/naggy
+    tag: "${DOCKER_TAG}"
+  healthcheck:
+    uri: /healthcheck
+  source:
+    url: 'https://github.com/purefn/naggy.git'
+
+notifications:
+  email: rwallace@atlassian.com
+
+organization: Ecosystem Engineering
+
+loadBalancer:
+  type: ALB
+
+network:
+  ingress: external
+
+resources:
+  - type: postgres-db
+    name: naggy
+
+requiresAsap: true
+

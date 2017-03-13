@@ -1,0 +1,99 @@
+name:               naggy
+version:            0.2
+license:            BSD3
+license-file:       LICENSE
+author:             Richard Wallace <rwallace@atlassian.com>
+maintainer:         Richard Wallace <rwallace@atlassian.com>
+copyright:          (c) 2017 Richard Wallace
+synopsis:           A HipChat Reminder Bot
+description:        A HipChat Reminder Bot
+category:           Web
+homepage:           https://github.com/purefn/naggy
+bug-reports:        https://github.com/purefn/naggy/issues
+cabal-version:      >= 1.8
+build-type:         Simple
+
+extra-source-files:
+  .ghci
+  .gitignore
+  HLint.hs
+  LICENSE
+  README.md
+
+-- data-dir:           data
+
+-- data-files:         naggy.sql
+
+source-repository   head
+  type:             git
+  location:         https://github.com/purefn/naggy.git
+
+library
+  ghc-options:      -Wall -Werror
+
+  hs-source-dirs:   src
+
+  exposed-modules:  HipBot.Naggy
+                  , HipBot.Naggy.API
+                  , HipBot.Naggy.API.PG
+                  , HipBot.Naggy.API.STM
+                  , HipBot.Naggy.Config
+                  , HipBot.Naggy.ConfigHtml
+                  , HipBot.Naggy.Descriptor
+                  , HipBot.Naggy.Env
+                  , HipBot.Naggy.RequestLogger
+                  , HipBot.Naggy.Scheduling
+                  , HipBot.Naggy.Types
+                  -- , Paths_naggy
+
+  build-depends:    base
+                  , aeson
+                  -- , bifunctors
+                  , blaze-builder
+                  , bytestring
+                  , case-insensitive
+                  , containers
+                  , cryptonite
+                  , data-default
+                  , envparse
+                  , exceptions
+                  , fast-logger
+                  , file-embed
+                  , hipbot
+                  , http-media
+                  , http-types
+                  , iproute
+                  , network
+                  , lens
+                  -- , lens-datetime
+                  , lucid
+                  , monad-logger
+                  , mtl
+                  , protolude
+                  , postgresql-simple
+                  , resource-pool
+                  , servant
+                  , servant-lucid
+                  , servant-server
+                  , stm
+                  , time
+                  , text
+                  -- , transformers
+                  , tz
+                  , unordered-containers
+                  , uri-bytestring
+                  , utf8-string
+                  -- , uuid
+                  , vector
+                  , wai
+                  , wai-extra
+                  , warp
+
+executable naggy
+  ghc-options:      -Wall -Werror
+
+  main-is:          Main.hs
+
+  build-depends:    base
+                  , naggy
+
